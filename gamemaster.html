@@ -111,8 +111,8 @@ textarea{width:100%;min-height:90px;padding:10px;border:1px solid #9c8968;border
       <h2>Zeitwarnungen</h2>
       <div class="inline">
         <button data-msg="⏳ Noch 10 Minuten. Die Geschichte beginnt bereits, sich zu verändern …">10 Minuten</button>
-        <button class="danger" data-msg="⚠ Noch 5 Minuten. Beeilt euch – die Erinnerung an die Pflege droht zu verschwinden.">5 Minuten</button>
-        <button class="danger" data-msg="⚠ Nur noch 1 Minute. Dies ist eure letzte Chance, die Geschichte der Pflege zu retten.">1 Minute</button>
+        <button class="danger" data-msg="⚠ Noch 5 Minuten. Beeilen Sie sich – die Erinnerung an die Pflege droht zu verschwinden.">5 Minuten</button>
+        <button class="danger" data-msg="⚠ Nur noch 1 Minute. Dies ist Ihre letzte Chance, die Geschichte der Pflege zu retten.">1 Minute</button>
       </div>
     </section>
 
@@ -200,13 +200,23 @@ onValue(ref(db, ".info/connected"), snap=>{
 
 const INTRO_DURATION=228.2;
 let introStatus={state:"ready",currentTime:0,duration:INTRO_DURATION};
+let localIntroStartedAt=null;
+let localIntroBase=0;
+let localIntroTicker=null;
+
 function fmtTime(sec){
   sec=Math.max(0,Math.round(Number(sec)||0));
   return String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0");
 }
+function currentLocalIntroTime(){
+  if(introStatus.state==="playing" && localIntroStartedAt!==null){
+    return Math.min(INTRO_DURATION, localIntroBase + (Date.now()-localIntroStartedAt)/1000);
+  }
+  return Math.min(INTRO_DURATION, localIntroBase);
+}
 function renderIntroStatus(){
   const state=introStatus.state||"ready";
-  const cur=Math.min(Number(introStatus.currentTime)||0, Number(introStatus.duration)||INTRO_DURATION);
+  const cur = state==="playing" ? currentLocalIntroTime() : Math.min(Number(introStatus.currentTime)||localIntroBase||0, INTRO_DURATION);
   const dur=Number(introStatus.duration)||INTRO_DURATION;
   const left=Math.max(0,dur-cur);
   const labels={
@@ -219,16 +229,70 @@ function renderIntroStatus(){
   document.getElementById("videoStatus").textContent=labels[state]||state.toUpperCase();
   document.getElementById("videoProgressText").textContent=`${fmtTime(cur)} / ${fmtTime(dur)} · Noch ${fmtTime(left)}`;
   document.getElementById("videoProgressBar").style.width=`${Math.min(100,(cur/dur)*100)}%`;
+  if(state==="playing" && cur>=INTRO_DURATION){
+    introStatus={state:"ended",currentTime:INTRO_DURATION,duration:INTRO_DURATION};
+    localIntroBase=INTRO_DURATION; localIntroStartedAt=null;
+    renderIntroStatus();
+  }
 }
+function ensureIntroTicker(){
+  if(localIntroTicker) return;
+  localIntroTicker=setInterval(renderIntroStatus,250);
+}
+ensureIntroTicker();
+
 onValue(roomRef("videoStatus"),snap=>{
-  if(snap.exists()){ introStatus=snap.val(); renderIntroStatus(); }
+  if(!snap.exists()) return;
+  const r=snap.val();
+  // Reconcile with the actual projector, especially pause/end.
+  if(r.state==="ended"){
+    introStatus={state:"ended",currentTime:INTRO_DURATION,duration:r.duration||INTRO_DURATION};
+    localIntroBase=INTRO_DURATION; localIntroStartedAt=null;
+  } else if(r.state==="paused"){
+    const t=Number(r.currentTime)||currentLocalIntroTime();
+    introStatus={state:"paused",currentTime:t,duration:r.duration||INTRO_DURATION};
+    localIntroBase=t; localIntroStartedAt=null;
+  } else if(r.state==="playing"){
+    const remote=Number(r.currentTime);
+    if(Number.isFinite(remote) && remote>0 && Math.abs(remote-currentLocalIntroTime())>2){
+      localIntroBase=remote; localIntroStartedAt=Date.now();
+    }
+    introStatus={state:"playing",currentTime:remote||0,duration:r.duration||INTRO_DURATION};
+  }
+  renderIntroStatus();
 });
 renderIntroStatus();
 
-document.getElementById("videoPlayBtn").onclick=async()=>{await set(roomRef("display"),{type:"video",command:"play",nonce:Date.now()});log("Introvideo gestartet.");};
-document.getElementById("videoPauseBtn").onclick=async()=>{await set(roomRef("display"),{type:"video",command:"pause",nonce:Date.now()});log("Introvideo pausiert.");};
-document.getElementById("videoRestartBtn").onclick=async()=>{await set(roomRef("display"),{type:"video",command:"restart",nonce:Date.now()});log("Introvideo neu gestartet.");};
-document.getElementById("videoSkipBtn").onclick=async()=>{await set(roomRef("display"),{type:"idle",ts:Date.now()});await set(roomRef("videoStatus"),{state:"skipped",currentTime:0,duration:INTRO_DURATION,ts:Date.now()});log("Introvideo übersprungen.");};
+document.getElementById("videoPlayBtn").onclick=async()=>{
+  if(introStatus.state!=="paused") localIntroBase=0;
+  localIntroStartedAt=Date.now();
+  introStatus={state:"playing",currentTime:localIntroBase,duration:INTRO_DURATION};
+  renderIntroStatus();
+  await set(roomRef("display"),{type:"video",command:"play",nonce:Date.now()});
+  log("Introvideo gestartet.");
+};
+document.getElementById("videoPauseBtn").onclick=async()=>{
+  localIntroBase=currentLocalIntroTime(); localIntroStartedAt=null;
+  introStatus={state:"paused",currentTime:localIntroBase,duration:INTRO_DURATION};
+  renderIntroStatus();
+  await set(roomRef("display"),{type:"video",command:"pause",nonce:Date.now()});
+  log("Introvideo pausiert.");
+};
+document.getElementById("videoRestartBtn").onclick=async()=>{
+  localIntroBase=0; localIntroStartedAt=Date.now();
+  introStatus={state:"playing",currentTime:0,duration:INTRO_DURATION};
+  renderIntroStatus();
+  await set(roomRef("display"),{type:"video",command:"restart",nonce:Date.now()});
+  log("Introvideo neu gestartet.");
+};
+document.getElementById("videoSkipBtn").onclick=async()=>{
+  localIntroBase=0; localIntroStartedAt=null;
+  introStatus={state:"skipped",currentTime:0,duration:INTRO_DURATION};
+  renderIntroStatus();
+  await set(roomRef("display"),{type:"idle",ts:Date.now()});
+  await set(roomRef("videoStatus"),{state:"skipped",currentTime:0,duration:INTRO_DURATION,ts:Date.now()});
+  log("Introvideo übersprungen.");
+};
 document.getElementById("startBtn").onclick=async()=>{
   const r=remaining();
   timerState={running:true,endAt:Date.now()+r,remainingMs:r};
