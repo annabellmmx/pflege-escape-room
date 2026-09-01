@@ -57,6 +57,13 @@ textarea{width:100%;min-height:90px;padding:10px;border:1px solid #9c8968;border
         <button id="videoRestartBtn">↺ Neustart</button>
         <button id="videoSkipBtn">⏭ Überspringen</button>
       </div>
+      <div id="videoStatusBox" style="margin-top:18px;padding:16px;border:1px solid rgba(90,70,40,.28);border-radius:10px;background:rgba(255,255,255,.32)">
+        <div id="videoStatus" style="font-weight:700;letter-spacing:.08em">BEREIT</div>
+        <div id="videoProgressText" style="margin-top:8px">00:00 / 03:48 · Noch 03:48</div>
+        <div style="height:8px;background:rgba(60,50,40,.15);border-radius:99px;overflow:hidden;margin-top:10px">
+          <div id="videoProgressBar" style="height:100%;width:0%;background:#51483c;transition:width .5s linear"></div>
+        </div>
+      </div>
     </section>
     <section class="paper card">
       <h2>1 · Ereigniskarten / Reihenfolge</h2>
@@ -64,7 +71,7 @@ textarea{width:100%;min-height:90px;padding:10px;border:1px solid #9c8968;border
       <div class="buttons">
         <button data-msg="Die Ereignisse erzählen eine Geschichte. Bringen Sie sie zuerst in die richtige zeitliche Reihenfolge.">Hinweis 1</button>
         <button data-msg="Nicht jede Zahl ist wichtig. Achten Sie darauf, was erst sichtbar oder sinnvoll wird, wenn die Reihenfolge stimmt.">Hinweis 2</button>
-        <button class="gold" data-msg="Lösungshinweis: 5 – 1 – 8 führt euch über das Zifferblatt zu dem Wort BETT.">Lösung</button>
+        <button class="gold" data-msg="Lösungshinweis: 5 – 1 – 8 führt Sie über das Zifferblatt zu dem Wort BETT.">Lösung</button>
       </div>
     </section>
 
@@ -190,10 +197,38 @@ onValue(ref(db, ".info/connected"), snap=>{
   document.getElementById("connText").textContent = on ? "Mit Firebase verbunden" : "Keine Verbindung";
 });
 
+
+const INTRO_DURATION=228.2;
+let introStatus={state:"ready",currentTime:0,duration:INTRO_DURATION};
+function fmtTime(sec){
+  sec=Math.max(0,Math.round(Number(sec)||0));
+  return String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0");
+}
+function renderIntroStatus(){
+  const state=introStatus.state||"ready";
+  const cur=Math.min(Number(introStatus.currentTime)||0, Number(introStatus.duration)||INTRO_DURATION);
+  const dur=Number(introStatus.duration)||INTRO_DURATION;
+  const left=Math.max(0,dur-cur);
+  const labels={
+    ready:"BEREIT",
+    playing:"🎬 INTROVIDEO LÄUFT",
+    paused:"Ⅱ INTROVIDEO PAUSIERT",
+    ended:"✓ INTROVIDEO BEENDET – TIMER STARTEN",
+    skipped:"INTROVIDEO ÜBERSPRUNGEN"
+  };
+  document.getElementById("videoStatus").textContent=labels[state]||state.toUpperCase();
+  document.getElementById("videoProgressText").textContent=`${fmtTime(cur)} / ${fmtTime(dur)} · Noch ${fmtTime(left)}`;
+  document.getElementById("videoProgressBar").style.width=`${Math.min(100,(cur/dur)*100)}%`;
+}
+onValue(roomRef("videoStatus"),snap=>{
+  if(snap.exists()){ introStatus=snap.val(); renderIntroStatus(); }
+});
+renderIntroStatus();
+
 document.getElementById("videoPlayBtn").onclick=async()=>{await set(roomRef("display"),{type:"video",command:"play",nonce:Date.now()});log("Introvideo gestartet.");};
 document.getElementById("videoPauseBtn").onclick=async()=>{await set(roomRef("display"),{type:"video",command:"pause",nonce:Date.now()});log("Introvideo pausiert.");};
 document.getElementById("videoRestartBtn").onclick=async()=>{await set(roomRef("display"),{type:"video",command:"restart",nonce:Date.now()});log("Introvideo neu gestartet.");};
-document.getElementById("videoSkipBtn").onclick=async()=>{await set(roomRef("display"),{type:"idle",ts:Date.now()});log("Introvideo übersprungen.");};
+document.getElementById("videoSkipBtn").onclick=async()=>{await set(roomRef("display"),{type:"idle",ts:Date.now()});await set(roomRef("videoStatus"),{state:"skipped",currentTime:0,duration:INTRO_DURATION,ts:Date.now()});log("Introvideo übersprungen.");};
 document.getElementById("startBtn").onclick=async()=>{
   const r=remaining();
   timerState={running:true,endAt:Date.now()+r,remainingMs:r};

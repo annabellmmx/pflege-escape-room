@@ -136,7 +136,27 @@ function hideAll(keepVideo=false){
   document.getElementById("fail").classList.remove("show");
   if(!keepVideo) videoLayer.classList.remove("show");
 }
-introVideo.addEventListener("ended",()=>videoLayer.classList.remove("show"));
+let lastVideoStatusSent=0;
+async function reportVideoStatus(state){
+  const now=Date.now();
+  if(state==="playing" && now-lastVideoStatusSent<900) return;
+  lastVideoStatusSent=now;
+  try{
+    await set(roomRef("videoStatus"),{
+      state,
+      currentTime:Number(introVideo.currentTime)||0,
+      duration:Number.isFinite(introVideo.duration)?introVideo.duration:228.2,
+      ts:now
+    });
+  }catch(e){}
+}
+introVideo.addEventListener("play",()=>reportVideoStatus("playing"));
+introVideo.addEventListener("pause",()=>{ if(!introVideo.ended) reportVideoStatus("paused"); });
+introVideo.addEventListener("timeupdate",()=>reportVideoStatus("playing"));
+introVideo.addEventListener("ended",()=>{
+  videoLayer.classList.remove("show");
+  reportVideoStatus("ended");
+});
 onValue(roomRef("display"),snap=>{
   if(!snap.exists()) return;
   const d=snap.val();
