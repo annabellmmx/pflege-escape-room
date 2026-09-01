@@ -48,12 +48,22 @@ textarea{width:100%;min-height:90px;padding:10px;border:1px solid #9c8968;border
   </section>
 
   <div class="grid">
+    <section class="paper card" style="grid-column:1/-1">
+      <h2>🎬 Introvideo – Florence Nightingale</h2>
+      <p>Fernsteuerung des Introfilms im Escape Room.</p>
+      <div class="inline">
+        <button class="primary" id="videoPlayBtn">▶ Video starten</button>
+        <button id="videoPauseBtn">Ⅱ Pause</button>
+        <button id="videoRestartBtn">↺ Neustart</button>
+        <button id="videoSkipBtn">⏭ Überspringen</button>
+      </div>
+    </section>
     <section class="paper card">
       <h2>1 · Ereigniskarten / Reihenfolge</h2>
       <p>Ziel: 5–1–8 → Buchstaben → BETT</p>
       <div class="buttons">
-        <button data-msg="Die Ereignisse erzählen eine Geschichte. Bringt sie zuerst in die richtige zeitliche Reihenfolge.">Hinweis 1</button>
-        <button data-msg="Nicht jede Zahl ist wichtig. Achtet darauf, was erst sichtbar oder sinnvoll wird, wenn die Reihenfolge stimmt.">Hinweis 2</button>
+        <button data-msg="Die Ereignisse erzählen eine Geschichte. Bringen Sie sie zuerst in die richtige zeitliche Reihenfolge.">Hinweis 1</button>
+        <button data-msg="Nicht jede Zahl ist wichtig. Achten Sie darauf, was erst sichtbar oder sinnvoll wird, wenn die Reihenfolge stimmt.">Hinweis 2</button>
         <button class="gold" data-msg="Lösungshinweis: 5 – 1 – 8 führt euch über das Zifferblatt zu dem Wort BETT.">Lösung</button>
       </div>
     </section>
@@ -62,8 +72,8 @@ textarea{width:100%;min-height:90px;padding:10px;border:1px solid #9c8968;border
       <h2>2 · Historischer Krankensaal</h2>
       <p>Ziel: BETT → Bild untersuchen → Kistencode 332</p>
       <div class="buttons">
-        <button data-msg="Das gefundene Wort benennt nicht nur einen Gegenstand – es sagt euch auch, wo ihr als Nächstes genauer hinsehen solltet.">Hinweis 1</button>
-        <button data-msg="Schaut euch den historischen Krankensaal nicht nur als Bild an. Zählt und vergleicht die Betten ganz genau.">Hinweis 2</button>
+        <button data-msg="Das gefundene Wort benennt nicht nur einen Gegenstand – es sagt Ihnen auch, wo Sie als Nächstes genauer hinsehen sollten.">Hinweis 1</button>
+        <button data-msg="Schauen Sie sich den historischen Krankensaal nicht nur als Bild an. Zählen und vergleichen Sie die Betten ganz genau.">Hinweis 2</button>
         <button class="gold" data-msg="Lösungshinweis: Der Code für die nächste Kiste lautet 332.">Lösung</button>
       </div>
     </section>
@@ -73,7 +83,7 @@ textarea{width:100%;min-height:90px;padding:10px;border:1px solid #9c8968;border
       <p>Ziel: vollständiges Wort SPIEGEL → Code 315</p>
       <div class="buttons">
         <button data-msg="Nicht alles, was geschrieben steht, lässt sich auf gewöhnliche Weise lesen.">Hinweis 1</button>
-        <button data-msg="Sucht in der Zeitung nach etwas, das verkehrt herum erscheint. Ein alltäglicher Gegenstand kann euch beim Lesen helfen.">Hinweis 2</button>
+        <button data-msg="Suchen Sie in der Zeitung nach etwas, das verkehrt herum erscheint. Ein alltäglicher Gegenstand kann Ihnen beim Lesen helfen.">Hinweis 2</button>
         <button class="gold" data-msg="Lösungshinweis: Das gesuchte Wort ist SPIEGEL. Der Code der nächsten Kiste lautet 315.">Lösung</button>
       </div>
     </section>
@@ -82,21 +92,12 @@ textarea{width:100%;min-height:90px;padding:10px;border:1px solid #9c8968;border
       <h2>4 · Finale / Lampe</h2>
       <p>Ziel: Puzzleteile zusammensetzen und Pflege retten</p>
       <div class="buttons">
-        <button data-msg="Ihr seid der Lösung sehr nah. Was für Florence Nightingale zum Symbol wurde, spielt auch hier die entscheidende Rolle.">Hinweis 1</button>
-        <button data-msg="Setzt die Teile so zusammen, dass die Linien ein vollständiges Motiv ergeben. Achtet auf die Übergänge.">Hinweis 2</button>
+        <button data-msg="Sie sind der Lösung sehr nah. Was für Florence Nightingale zum Symbol wurde, spielt auch hier die entscheidende Rolle.">Hinweis 1</button>
+        <button data-msg="Setzen Sie die Teile so zusammen, dass die Linien ein vollständiges Motiv ergeben. Achten Sie auf die Übergänge.">Hinweis 2</button>
         <button class="gold" data-msg="Lösungshinweis: Das vollständige Motiv zeigt die Lampe – Nightingales bekanntestes Symbol.">Lösung</button>
       </div>
     </section>
   </div>
-
-  <section class="paper card" style="margin-top:16px">
-    <h2>🎬 Introvideo · Florence Nightingale</h2>
-    <p>Startet das Nightingale-Video auf dem Bildschirm im Escape Room.</p>
-    <div class="inline">
-      <button class="primary" id="videoStartBtn">▶ Video starten</button>
-      <button id="videoStopBtn">■ Video stoppen</button>
-    </div>
-  </section>
 
   <div class="bottom">
     <section class="paper card">
@@ -189,6 +190,10 @@ onValue(ref(db, ".info/connected"), snap=>{
   document.getElementById("connText").textContent = on ? "Mit Firebase verbunden" : "Keine Verbindung";
 });
 
+document.getElementById("videoPlayBtn").onclick=async()=>{await set(roomRef("display"),{type:"video",command:"play",nonce:Date.now()});log("Introvideo gestartet.");};
+document.getElementById("videoPauseBtn").onclick=async()=>{await set(roomRef("display"),{type:"video",command:"pause",nonce:Date.now()});log("Introvideo pausiert.");};
+document.getElementById("videoRestartBtn").onclick=async()=>{await set(roomRef("display"),{type:"video",command:"restart",nonce:Date.now()});log("Introvideo neu gestartet.");};
+document.getElementById("videoSkipBtn").onclick=async()=>{await set(roomRef("display"),{type:"idle",ts:Date.now()});log("Introvideo übersprungen.");};
 document.getElementById("startBtn").onclick=async()=>{
   const r=remaining();
   timerState={running:true,endAt:Date.now()+r,remainingMs:r};
@@ -223,14 +228,6 @@ document.getElementById("sendCustom").onclick=()=>{
 document.getElementById("clearMsg").onclick=async()=>{await set(roomRef("display"),{type:"idle",ts:Date.now()});log("Nachricht ausgeblendet.");}
 document.getElementById("successBtn").onclick=async()=>{await set(roomRef("display"),{type:"success",ts:Date.now()});log("Finale: Pflege gerettet.");}
 document.getElementById("failBtn").onclick=async()=>{await set(roomRef("display"),{type:"fail",ts:Date.now()});log("Finale: Zeit abgelaufen.");}
-document.getElementById("videoStartBtn").onclick=async()=>{
-  await set(roomRef("display"),{type:"video",action:"play",ts:Date.now()});
-  log("Nightingale-Video gestartet.");
-};
-document.getElementById("videoStopBtn").onclick=async()=>{
-  await set(roomRef("display"),{type:"video",action:"stop",ts:Date.now()});
-  log("Nightingale-Video gestoppt.");
-};
 </script>
 </body>
 </html>
