@@ -129,12 +129,21 @@ function fmt(ms){
 setInterval(()=>document.getElementById("timer").textContent=fmt(remaining()),250);
 
 onValue(roomRef("timer"),async snap=>{
-  const raw=snap.exists()?snap.val():null;
-  const fixed=sanitizeTimer(raw);
-  timerState=fixed;
+  if(!snap.exists()){
+    timerState={running:false,endAt:null,remainingMs:TIMER_MS};
+    document.getElementById("timer").textContent=fmt(remaining());
+    return;
+  }
+  const raw=snap.val();
+  timerState=sanitizeTimer(raw);
   document.getElementById("timer").textContent=fmt(remaining());
-  if(!raw || JSON.stringify(fixed)!==JSON.stringify(raw)){
-    try{await set(roomRef("timer"),fixed);}catch(e){}
+
+  const impossible = raw.running===true
+    ? (!Number.isFinite(Number(raw.endAt)) || Number(raw.endAt)-Date.now() > TIMER_MS+5000 || Number(raw.endAt)-Date.now() < -5000)
+    : (!Number.isFinite(Number(raw.remainingMs)) || Number(raw.remainingMs)<0 || Number(raw.remainingMs)>TIMER_MS);
+  if(impossible){
+    timerState={running:false,endAt:null,remainingMs:TIMER_MS};
+    try{await set(roomRef("timer"),timerState);}catch(e){}
   }
 });
 

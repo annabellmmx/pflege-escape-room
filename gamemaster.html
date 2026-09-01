@@ -198,14 +198,28 @@ setInterval(async()=>{
   }
 },250);
 
-onValue(roomRef("timer"),async snap=>{
-  const raw=snap.exists()?snap.val():null;
+onValue(roomRef("timer"), async snap=>{
+  if(!snap.exists()){
+    timerState={running:false,endAt:null,remainingMs:TIMER_MS};
+    await set(roomRef("timer"),timerState);
+    paint();
+    return;
+  }
+  const raw=snap.val();
   const fixed=sanitizeTimer(raw);
   timerState=fixed;
   paint();
-  if(!raw || JSON.stringify(fixed)!==JSON.stringify(raw)){
-    await set(roomRef("timer"),fixed);
-    if(raw) log("Fehlerhafter alter Timerwert wurde automatisch auf 45:00 zurückgesetzt.");
+
+  // Only repair genuinely impossible values. Never rewrite a valid running
+  // timer on every tick; that caused the previous control lock-up.
+  const impossible = raw.running===true
+    ? (!Number.isFinite(Number(raw.endAt)) || Number(raw.endAt)-Date.now() > TIMER_MS+5000 || Number(raw.endAt)-Date.now() < -5000)
+    : (!Number.isFinite(Number(raw.remainingMs)) || Number(raw.remainingMs)<0 || Number(raw.remainingMs)>TIMER_MS);
+  if(impossible){
+    timerState={running:false,endAt:null,remainingMs:TIMER_MS};
+    await set(roomRef("timer"),timerState);
+    paint();
+    log("Ungültiger Timerwert wurde auf 45:00 zurückgesetzt.");
   }
 });
 
