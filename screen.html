@@ -100,51 +100,48 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const roomRef = (path="") => ref(db, `rooms/${ROOM_ID}${path ? "/" + path : ""}`);
 
+let serverTimeOffset = 0;
+onValue(ref(db, ".info/serverTimeOffset"), snap=>{
+  const v = Number(snap.val());
+  serverTimeOffset = Number.isFinite(v) ? v : 0;
+});
+const serverNow = ()=>Date.now()+serverTimeOffset;
+
+
 const TIMER_MS=45*60*1000;
 let timerState={running:false,endAt:null,remainingMs:TIMER_MS};
 let msgTimer=null;
 
-function sanitizeTimer(raw){
+function normalizeTimer(raw){
   if(!raw || typeof raw!=="object") return {running:false,endAt:null,remainingMs:TIMER_MS};
   if(raw.running===true){
     const endAt=Number(raw.endAt);
-    const r=endAt-Date.now();
-    if(!Number.isFinite(endAt) || r<0 || r>TIMER_MS+5000) return {running:false,endAt:null,remainingMs:TIMER_MS};
-    return {running:true,endAt,remainingMs:Math.min(TIMER_MS,Math.max(0,r))};
+    if(!Number.isFinite(endAt)) return {running:false,endAt:null,remainingMs:TIMER_MS};
+    return {running:true,endAt,remainingMs:TIMER_MS};
   }
   const r=Number(raw.remainingMs);
-  if(!Number.isFinite(r) || r<0 || r>TIMER_MS) return {running:false,endAt:null,remainingMs:TIMER_MS};
-  return {running:false,endAt:null,remainingMs:r};
+  if(!Number.isFinite(r)) return {running:false,endAt:null,remainingMs:TIMER_MS};
+  return {running:false,endAt:null,remainingMs:Math.min(TIMER_MS,Math.max(0,r))};
 }
 function remaining(){
-  let r=timerState.running ? Number(timerState.endAt)-Date.now() : Number(timerState.remainingMs);
+  let r=timerState.running
+    ? Number(timerState.endAt)-serverNow()
+    : Number(timerState.remainingMs);
   if(!Number.isFinite(r)) r=TIMER_MS;
   return Math.min(TIMER_MS,Math.max(0,r));
 }
 function fmt(ms){
-  ms=Math.min(TIMER_MS,Math.max(0,Number(ms)||0));
-  const total=Math.ceil(ms/1000),m=Math.floor(total/60),ss=total%60;
+  const safe=Math.min(TIMER_MS,Math.max(0,Number(ms)||0));
+  const total=Math.ceil(safe/1000),m=Math.floor(total/60),ss=total%60;
   return `${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`;
 }
 setInterval(()=>document.getElementById("timer").textContent=fmt(remaining()),250);
 
-onValue(roomRef("timer"),async snap=>{
-  if(!snap.exists()){
-    timerState={running:false,endAt:null,remainingMs:TIMER_MS};
-    document.getElementById("timer").textContent=fmt(remaining());
-    return;
-  }
-  const raw=snap.val();
-  timerState=sanitizeTimer(raw);
+onValue(roomRef("timer"),snap=>{
+  timerState=snap.exists()
+    ? normalizeTimer(snap.val())
+    : {running:false,endAt:null,remainingMs:TIMER_MS};
   document.getElementById("timer").textContent=fmt(remaining());
-
-  const impossible = raw.running===true
-    ? (!Number.isFinite(Number(raw.endAt)) || Number(raw.endAt)-Date.now() > TIMER_MS+5000 || Number(raw.endAt)-Date.now() < -5000)
-    : (!Number.isFinite(Number(raw.remainingMs)) || Number(raw.remainingMs)<0 || Number(raw.remainingMs)>TIMER_MS);
-  if(impossible){
-    timerState={running:false,endAt:null,remainingMs:TIMER_MS};
-    try{await set(roomRef("timer"),timerState);}catch(e){}
-  }
 });
 
 const introVideo=document.getElementById("introVideo"), videoLayer=document.getElementById("videoLayer");

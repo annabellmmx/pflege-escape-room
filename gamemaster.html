@@ -156,6 +156,14 @@ const db = getDatabase(app);
 
 const roomRef = (path="") => ref(db, `rooms/${ROOM_ID}${path ? "/" + path : ""}`);
 
+let serverTimeOffset = 0;
+onValue(ref(db, ".info/serverTimeOffset"), snap=>{
+  const v = Number(snap.val());
+  serverTimeOffset = Number.isFinite(v) ? v : 0;
+});
+const serverNow = ()=>Date.now()+serverTimeOffset;
+
+
 const TIMER_MS = 45*60*1000;
 let timerState = {running:false,endAt:null,remainingMs:TIMER_MS};
 
@@ -164,33 +172,39 @@ function log(t){
   const time = new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
   logEl.innerHTML = `[${time}] ${t}<br>` + logEl.innerHTML;
 }
-function sanitizeTimer(raw){
+
+function normalizeTimer(raw){
   if(!raw || typeof raw!=="object") return {running:false,endAt:null,remainingMs:TIMER_MS};
   if(raw.running===true){
     const endAt=Number(raw.endAt);
-    const r=endAt-Date.now();
-    if(!Number.isFinite(endAt) || r<0 || r>TIMER_MS+5000) return {running:false,endAt:null,remainingMs:TIMER_MS};
-    return {running:true,endAt,remainingMs:Math.min(TIMER_MS,Math.max(0,r))};
+    if(!Number.isFinite(endAt)) return {running:false,endAt:null,remainingMs:TIMER_MS};
+    return {running:true,endAt,remainingMs:TIMER_MS};
   }
   const r=Number(raw.remainingMs);
-  if(!Number.isFinite(r) || r<0 || r>TIMER_MS) return {running:false,endAt:null,remainingMs:TIMER_MS};
-  return {running:false,endAt:null,remainingMs:r};
+  if(!Number.isFinite(r)) return {running:false,endAt:null,remainingMs:TIMER_MS};
+  return {running:false,endAt:null,remainingMs:Math.min(TIMER_MS,Math.max(0,r))};
 }
 function remaining(){
-  let r=timerState.running ? Number(timerState.endAt)-Date.now() : Number(timerState.remainingMs);
+  let r = timerState.running
+    ? Number(timerState.endAt)-serverNow()
+    : Number(timerState.remainingMs);
   if(!Number.isFinite(r)) r=TIMER_MS;
   return Math.min(TIMER_MS,Math.max(0,r));
 }
 function fmt(ms){
-  ms=Math.min(TIMER_MS,Math.max(0,Number(ms)||0));
-  const total=Math.ceil(ms/1000),m=Math.floor(total/60),ss=total%60;
+  const safe=Math.min(TIMER_MS,Math.max(0,Number(ms)||0));
+  const total=Math.ceil(safe/1000),m=Math.floor(total/60),ss=total%60;
   return `${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`;
 }
-function paint(){document.getElementById("timer").textContent=fmt(remaining())}
+function paint(){
+  document.getElementById("timer").textContent=fmt(remaining());
+}
 
+let finishSent=false;
 setInterval(async()=>{
   paint();
-  if(timerState.running && remaining()<=0){
+  if(timerState.running && remaining()<=0 && !finishSent){
+    finishSent=true;
     timerState={running:false,endAt:null,remainingMs:0};
     await set(roomRef("timer"),timerState);
     await set(roomRef("display"),{type:"fail",ts:Date.now()});
@@ -198,29 +212,14 @@ setInterval(async()=>{
   }
 },250);
 
-onValue(roomRef("timer"), async snap=>{
+onValue(roomRef("timer"), snap=>{
   if(!snap.exists()){
     timerState={running:false,endAt:null,remainingMs:TIMER_MS};
-    await set(roomRef("timer"),timerState);
-    paint();
-    return;
+  } else {
+    timerState=normalizeTimer(snap.val());
   }
-  const raw=snap.val();
-  const fixed=sanitizeTimer(raw);
-  timerState=fixed;
+  if(timerState.running && remaining()>0) finishSent=false;
   paint();
-
-  // Only repair genuinely impossible values. Never rewrite a valid running
-  // timer on every tick; that caused the previous control lock-up.
-  const impossible = raw.running===true
-    ? (!Number.isFinite(Number(raw.endAt)) || Number(raw.endAt)-Date.now() > TIMER_MS+5000 || Number(raw.endAt)-Date.now() < -5000)
-    : (!Number.isFinite(Number(raw.remainingMs)) || Number(raw.remainingMs)<0 || Number(raw.remainingMs)>TIMER_MS);
-  if(impossible){
-    timerState={running:false,endAt:null,remainingMs:TIMER_MS};
-    await set(roomRef("timer"),timerState);
-    paint();
-    log("Ungültiger Timerwert wurde auf 45:00 zurückgesetzt.");
-  }
 });
 
 onValue(ref(db, ".info/connected"), snap=>{
@@ -327,16 +326,24 @@ document.getElementById("videoSkipBtn").onclick=async()=>{
 };
 document.getElementById("startBtn").onclick=async()=>{
   const r=remaining();
-  timerState={running:true,endAt:Date.now()+r,remainingMs:r};
-  await set(roomRef("timer"),timerState); log("Timer gestartet.");
+  if(r<=0) return;
+  finishSent=false;
+  timerState={running:true,endAt:serverNow()+r,remainingMs:r};
+  paint();
+  await set(roomRef("timer"),timerState);
+  log("Timer gestartet.");
 };
 document.getElementById("pauseBtn").onclick=async()=>{
   const r=remaining();
   timerState={running:false,endAt:null,remainingMs:r};
-  await set(roomRef("timer"),timerState); log("Timer pausiert.");
+  paint();
+  await set(roomRef("timer"),timerState);
+  log("Timer pausiert.");
 };
 document.getElementById("resetBtn").onclick=async()=>{
+  finishSent=false;
   timerState={running:false,endAt:null,remainingMs:TIMER_MS};
+  paint();
   await set(roomRef("timer"),timerState);
   await set(roomRef("display"),{type:"idle",ts:Date.now()});
   log("Timer auf 45:00 zurückgesetzt.");
