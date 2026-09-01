@@ -31,6 +31,8 @@ body{display:flex;align-items:center;justify-content:center}
 .success{background:radial-gradient(circle,#3f5b48,#121a15 72%)}
 .fail{background:radial-gradient(circle,#4b1a17,#160807 72%)}
 .connection{position:absolute;right:18px;bottom:14px;font-family:Arial,sans-serif;font-size:.72rem;opacity:.42}
+.video-layer{position:absolute;inset:0;background:#000;display:none;align-items:center;justify-content:center;z-index:20}
+.video-layer.show{display:flex}.video-layer video{width:100%;height:100%;object-fit:contain;object-position:center center;background:#000}
 </style>
 </head>
 <body>
@@ -43,6 +45,7 @@ body{display:flex;align-items:center;justify-content:center}
     <div class="timer" id="timer">45:00</div>
   </div>
 
+  <div class="video-layer" id="videoLayer"><video id="introVideo" preload="auto" playsinline src="./nightingale-intro.mp4"></video></div>
   <div class="message" id="message">
     <div class="paper note">
       <div class="from">Nachricht von Florence Nightingale</div>
@@ -107,16 +110,26 @@ setInterval(()=>document.getElementById("timer").textContent=fmt(remaining()),25
 
 onValue(roomRef("timer"),snap=>{if(snap.exists()) timerState=snap.val();});
 
-function hideAll(){
+const introVideo=document.getElementById("introVideo"), videoLayer=document.getElementById("videoLayer");
+function hideAll(keepVideo=false){
   document.getElementById("message").classList.remove("show");
   document.getElementById("success").classList.remove("show");
   document.getElementById("fail").classList.remove("show");
+  if(!keepVideo) videoLayer.classList.remove("show");
 }
+introVideo.addEventListener("ended",()=>videoLayer.classList.remove("show"));
 onValue(roomRef("display"),snap=>{
   if(!snap.exists()) return;
-  const d=snap.val(); hideAll();
+  const d=snap.val();
   if(msgTimer) clearTimeout(msgTimer);
-
+  if(d.type==="video"){
+    hideAll(true); videoLayer.classList.add("show");
+    if(d.command==="play") introVideo.play().catch(()=>{});
+    else if(d.command==="pause") introVideo.pause();
+    else if(d.command==="restart"){introVideo.currentTime=0;introVideo.play().catch(()=>{});}
+    return;
+  }
+  hideAll(); if(!introVideo.paused) introVideo.pause();
   if(d.type==="message"){
     document.getElementById("messageText").textContent=d.text||"";
     document.getElementById("message").classList.add("show");

@@ -48,6 +48,16 @@ textarea{width:100%;min-height:90px;padding:10px;border:1px solid #9c8968;border
   </section>
 
   <div class="grid">
+    <section class="paper card" style="grid-column:1/-1">
+      <h2>🎬 Introvideo – Florence Nightingale</h2>
+      <p>Fernsteuerung des Introfilms im Escape Room.</p>
+      <div class="inline">
+        <button class="primary" id="videoPlayBtn">▶ Video starten</button>
+        <button id="videoPauseBtn">Ⅱ Pause</button>
+        <button id="videoRestartBtn">↺ Neustart</button>
+        <button id="videoSkipBtn">⏭ Überspringen</button>
+      </div>
+    </section>
     <section class="paper card">
       <h2>1 · Ereigniskarten / Reihenfolge</h2>
       <p>Ziel: 5–1–8 → Buchstaben → BETT</p>
@@ -180,6 +190,10 @@ onValue(ref(db, ".info/connected"), snap=>{
   document.getElementById("connText").textContent = on ? "Mit Firebase verbunden" : "Keine Verbindung";
 });
 
+document.getElementById("videoPlayBtn").onclick=async()=>{await set(roomRef("display"),{type:"video",command:"play",nonce:Date.now()});log("Introvideo gestartet.");};
+document.getElementById("videoPauseBtn").onclick=async()=>{await set(roomRef("display"),{type:"video",command:"pause",nonce:Date.now()});log("Introvideo pausiert.");};
+document.getElementById("videoRestartBtn").onclick=async()=>{await set(roomRef("display"),{type:"video",command:"restart",nonce:Date.now()});log("Introvideo neu gestartet.");};
+document.getElementById("videoSkipBtn").onclick=async()=>{await set(roomRef("display"),{type:"idle",ts:Date.now()});log("Introvideo übersprungen.");};
 document.getElementById("startBtn").onclick=async()=>{
   const r=remaining();
   timerState={running:true,endAt:Date.now()+r,remainingMs:r};
