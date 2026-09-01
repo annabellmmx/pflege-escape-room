@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Game Master – Geschichte der Pflege</title>
+<link rel="stylesheet" href="shared.css"/>
+<style>
+body{padding:18px;overflow:auto}
+.wrap{max-width:1220px;margin:0 auto}
+.header{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center;padding:20px 24px;margin-bottom:16px}
+.title{font-size:clamp(1.6rem,3vw,2.6rem);margin:3px 0 0}
+.timer-box{text-align:center;min-width:220px}
+.timer{font-size:3.2rem;font-weight:bold;letter-spacing:.05em}
+.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.card{padding:18px}
+.card h2{margin:0 0 6px;font-size:1.18rem}
+.card p{margin:0 0 12px;color:#5b4d3d;font-size:.92rem}
+.buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.bottom{margin-top:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.bottom .card{min-height:150px}
+.eventlog{font-family:ui-monospace,Consolas,monospace;font-size:.8rem;max-height:140px;overflow:auto;background:#1f1a15;color:#e7dbc1;border-radius:8px;padding:10px}
+textarea{width:100%;min-height:90px;padding:10px;border:1px solid #9c8968;border-radius:8px;background:#fffaf0;font:inherit}
+.inline{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+@media(max-width:850px){.grid,.bottom{grid-template-columns:1fr}.header{grid-template-columns:1fr}.buttons{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="paper header">
+    <div>
+      <div class="smallcaps">Spielleitung</div>
+      <div class="title">🕯 Geschichte der Pflege – Game Master</div>
+      <div style="margin-top:8px;font-family:Arial,sans-serif;font-size:.9rem">
+        <span id="connDot" class="status-dot"></span><span id="connText">Verbindung wird geprüft …</span>
+      </div>
+    </div>
+    <div class="timer-box">
+      <div class="smallcaps">Restzeit</div>
+      <div id="timer" class="timer">45:00</div>
+      <div class="controls">
+        <button class="primary" id="startBtn">▶ Start</button>
+        <button id="pauseBtn">Ⅱ Pause</button>
+        <button id="resetBtn">↺ 45:00</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="grid">
+    <section class="paper card">
+      <h2>1 · Ereigniskarten / Reihenfolge</h2>
+      <p>Ziel: 5–1–8 → Buchstaben → BETT</p>
+      <div class="buttons">
+        <button data-msg="Die Ereignisse erzählen eine Geschichte. Bringt sie zuerst in die richtige zeitliche Reihenfolge.">Hinweis 1</button>
+        <button data-msg="Nicht jede Zahl ist wichtig. Achtet darauf, was erst sichtbar oder sinnvoll wird, wenn die Reihenfolge stimmt.">Hinweis 2</button>
+        <button class="gold" data-msg="Lösungshinweis: 5 – 1 – 8 führt euch über das Zifferblatt zu dem Wort BETT.">Lösung</button>
+      </div>
+    </section>
+
+    <section class="paper card">
+      <h2>2 · Historischer Krankensaal</h2>
+      <p>Ziel: BETT → Bild untersuchen → Kistencode 332</p>
+      <div class="buttons">
+        <button data-msg="Das gefundene Wort benennt nicht nur einen Gegenstand – es sagt euch auch, wo ihr als Nächstes genauer hinsehen solltet.">Hinweis 1</button>
+        <button data-msg="Schaut euch den historischen Krankensaal nicht nur als Bild an. Zählt und vergleicht die Betten ganz genau.">Hinweis 2</button>
+        <button class="gold" data-msg="Lösungshinweis: Der Code für die nächste Kiste lautet 332.">Lösung</button>
+      </div>
+    </section>
+
+    <section class="paper card">
+      <h2>3 · Zeitung / Spiegel</h2>
+      <p>Ziel: vollständiges Wort SPIEGEL → Code 315</p>
+      <div class="buttons">
+        <button data-msg="Nicht alles, was geschrieben steht, lässt sich auf gewöhnliche Weise lesen.">Hinweis 1</button>
+        <button data-msg="Sucht in der Zeitung nach etwas, das verkehrt herum erscheint. Ein alltäglicher Gegenstand kann euch beim Lesen helfen.">Hinweis 2</button>
+        <button class="gold" data-msg="Lösungshinweis: Das gesuchte Wort ist SPIEGEL. Der Code der nächsten Kiste lautet 315.">Lösung</button>
+      </div>
+    </section>
+
+    <section class="paper card">
+      <h2>4 · Finale / Lampe</h2>
+      <p>Ziel: Puzzleteile zusammensetzen und Pflege retten</p>
+      <div class="buttons">
+        <button data-msg="Ihr seid der Lösung sehr nah. Was für Florence Nightingale zum Symbol wurde, spielt auch hier die entscheidende Rolle.">Hinweis 1</button>
+        <button data-msg="Setzt die Teile so zusammen, dass die Linien ein vollständiges Motiv ergeben. Achtet auf die Übergänge.">Hinweis 2</button>
+        <button class="gold" data-msg="Lösungshinweis: Das vollständige Motiv zeigt die Lampe – Nightingales bekanntestes Symbol.">Lösung</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="bottom">
+    <section class="paper card">
+      <h2>Zeitwarnungen</h2>
+      <div class="inline">
+        <button data-msg="⏳ Noch 10 Minuten. Die Geschichte beginnt bereits, sich zu verändern …">10 Minuten</button>
+        <button class="danger" data-msg="⚠ Noch 5 Minuten. Beeilt euch – die Erinnerung an die Pflege droht zu verschwinden.">5 Minuten</button>
+        <button class="danger" data-msg="⚠ Nur noch 1 Minute. Dies ist eure letzte Chance, die Geschichte der Pflege zu retten.">1 Minute</button>
+      </div>
+    </section>
+
+    <section class="paper card">
+      <h2>Freie Nachricht</h2>
+      <textarea id="customMsg" placeholder="Eigene Nachricht an die Gruppe …"></textarea>
+      <div class="inline" style="margin-top:8px">
+        <button class="primary" id="sendCustom">Nachricht senden</button>
+        <button id="clearMsg">Ausblenden</button>
+      </div>
+    </section>
+
+    <section class="paper card">
+      <h2>Spielende</h2>
+      <div class="inline">
+        <button class="primary" id="successBtn">🕯 Pflege gerettet</button>
+        <button class="danger" id="failBtn">⌛ Zeit abgelaufen</button>
+      </div>
+      <div class="eventlog" id="log" style="margin-top:12px"></div>
+    </section>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+<script src="config.js"></script>
+<script>
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const ref = db.ref("rooms/" + ROOM_ID);
+
+const TIMER_MS = 45*60*1000;
+let timerState = {running:false, endAt:null, remainingMs:TIMER_MS};
+
+const logEl = document.getElementById("log");
+function log(t){
+  const time = new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  logEl.innerHTML = `[${time}] ${t}<br>` + logEl.innerHTML;
+}
+function fmt(ms){
+  ms = Math.max(0, ms);
+  const s = Math.ceil(ms/1000), m = Math.floor(s/60), ss=s%60;
+  return `${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`;
+}
+function remaining(){
+  if(timerState.running && timerState.endAt) return Math.max(0,timerState.endAt-Date.now());
+  return Math.max(0,timerState.remainingMs ?? TIMER_MS);
+}
+function paint(){document.getElementById("timer").textContent=fmt(remaining())}
+setInterval(()=>{
+  paint();
+  if(timerState.running && remaining()<=0){
+    timerState={running:false,endAt:null,remainingMs:0};
+    ref.child("timer").set(timerState);
+    ref.child("display").set({type:"fail",ts:Date.now()});
+    log("Zeit abgelaufen.");
+  }
+},250);
+
+ref.child("timer").on("value",s=>{
+  if(s.exists()) timerState=s.val();
+  else ref.child("timer").set(timerState);
+  paint();
+});
+
+firebase.database().ref(".info/connected").on("value", s=>{
+  const on = s.val()===true;
+  document.getElementById("connDot").classList.toggle("online",on);
+  document.getElementById("connText").textContent = on ? "Mit Firebase verbunden" : "Keine Verbindung";
+});
+
+document.getElementById("startBtn").onclick=()=>{
+  const r=remaining();
+  timerState={running:true,endAt:Date.now()+r,remainingMs:r};
+  ref.child("timer").set(timerState); log("Timer gestartet.");
+};
+document.getElementById("pauseBtn").onclick=()=>{
+  const r=remaining();
+  timerState={running:false,endAt:null,remainingMs:r};
+  ref.child("timer").set(timerState); log("Timer pausiert.");
+};
+document.getElementById("resetBtn").onclick=()=>{
+  timerState={running:false,endAt:null,remainingMs:TIMER_MS};
+  ref.child("timer").set(timerState);
+  ref.child("display").set({type:"idle",ts:Date.now()});
+  log("Timer auf 45:00 zurückgesetzt.");
+};
+
+async function sendMessage(text){
+  await ref.child("display").set({type:"message",text,ts:Date.now(),duration:12000});
+  log("Hinweis gesendet: " + text);
+}
+document.querySelectorAll("[data-msg]").forEach(btn=>btn.onclick=()=>sendMessage(btn.dataset.msg));
+document.getElementById("sendCustom").onclick=()=>{
+  const t=document.getElementById("customMsg").value.trim();
+  if(t) sendMessage(t);
+};
+document.getElementById("clearMsg").onclick=()=>{ref.child("display").set({type:"idle",ts:Date.now()});log("Nachricht ausgeblendet.");}
+document.getElementById("successBtn").onclick=()=>{ref.child("display").set({type:"success",ts:Date.now()});log("Finale: Pflege gerettet.");}
+document.getElementById("failBtn").onclick=()=>{ref.child("display").set({type:"fail",ts:Date.now()});log("Finale: Zeit abgelaufen.");}
+</script>
+</body>
+</html>
