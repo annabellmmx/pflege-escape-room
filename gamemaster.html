@@ -119,13 +119,15 @@ textarea{width:100%;min-height:90px;padding:10px;border:1px solid #9c8968;border
   </div>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
-<script src="config.js"></script>
-<script>
-const app = firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const ref = db.ref("rooms/" + ROOM_ID);
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+import { firebaseConfig, ROOM_ID } from "./config.js";
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const roomRef = (path="") => ref(db, `rooms/${ROOM_ID}${path ? "/" + path : ""}`);
 
 const TIMER_MS = 45*60*1000;
 let timerState = {running:false, endAt:null, remainingMs:TIMER_MS};
@@ -145,57 +147,63 @@ function remaining(){
   return Math.max(0,timerState.remainingMs ?? TIMER_MS);
 }
 function paint(){document.getElementById("timer").textContent=fmt(remaining())}
-setInterval(()=>{
+
+setInterval(async ()=>{
   paint();
   if(timerState.running && remaining()<=0){
     timerState={running:false,endAt:null,remainingMs:0};
-    ref.child("timer").set(timerState);
-    ref.child("display").set({type:"fail",ts:Date.now()});
+    await set(roomRef("timer"), timerState);
+    await set(roomRef("display"), {type:"fail",ts:Date.now()});
     log("Zeit abgelaufen.");
   }
 },250);
 
-ref.child("timer").on("value",s=>{
-  if(s.exists()) timerState=s.val();
-  else ref.child("timer").set(timerState);
+onValue(roomRef("timer"), snap=>{
+  if(snap.exists()) timerState=snap.val();
+  else set(roomRef("timer"), timerState);
   paint();
 });
 
-firebase.database().ref(".info/connected").on("value", s=>{
-  const on = s.val()===true;
+onValue(ref(db, ".info/connected"), snap=>{
+  const on = snap.val()===true;
   document.getElementById("connDot").classList.toggle("online",on);
   document.getElementById("connText").textContent = on ? "Mit Firebase verbunden" : "Keine Verbindung";
 });
 
-document.getElementById("startBtn").onclick=()=>{
+document.getElementById("startBtn").onclick=async()=>{
   const r=remaining();
   timerState={running:true,endAt:Date.now()+r,remainingMs:r};
-  ref.child("timer").set(timerState); log("Timer gestartet.");
+  await set(roomRef("timer"),timerState); log("Timer gestartet.");
 };
-document.getElementById("pauseBtn").onclick=()=>{
+document.getElementById("pauseBtn").onclick=async()=>{
   const r=remaining();
   timerState={running:false,endAt:null,remainingMs:r};
-  ref.child("timer").set(timerState); log("Timer pausiert.");
+  await set(roomRef("timer"),timerState); log("Timer pausiert.");
 };
-document.getElementById("resetBtn").onclick=()=>{
+document.getElementById("resetBtn").onclick=async()=>{
   timerState={running:false,endAt:null,remainingMs:TIMER_MS};
-  ref.child("timer").set(timerState);
-  ref.child("display").set({type:"idle",ts:Date.now()});
+  await set(roomRef("timer"),timerState);
+  await set(roomRef("display"),{type:"idle",ts:Date.now()});
   log("Timer auf 45:00 zurückgesetzt.");
 };
 
 async function sendMessage(text){
-  await ref.child("display").set({type:"message",text,ts:Date.now(),duration:12000});
-  log("Hinweis gesendet: " + text);
+  try{
+    await set(roomRef("display"),{type:"message",text,ts:Date.now(),duration:12000});
+    log("Hinweis gesendet: " + text);
+  }catch(err){
+    log("FEHLER: " + err.message);
+    alert("Hinweis konnte nicht gesendet werden: " + err.message);
+  }
 }
 document.querySelectorAll("[data-msg]").forEach(btn=>btn.onclick=()=>sendMessage(btn.dataset.msg));
 document.getElementById("sendCustom").onclick=()=>{
   const t=document.getElementById("customMsg").value.trim();
   if(t) sendMessage(t);
 };
-document.getElementById("clearMsg").onclick=()=>{ref.child("display").set({type:"idle",ts:Date.now()});log("Nachricht ausgeblendet.");}
-document.getElementById("successBtn").onclick=()=>{ref.child("display").set({type:"success",ts:Date.now()});log("Finale: Pflege gerettet.");}
-document.getElementById("failBtn").onclick=()=>{ref.child("display").set({type:"fail",ts:Date.now()});log("Finale: Zeit abgelaufen.");}
+document.getElementById("clearMsg").onclick=async()=>{await set(roomRef("display"),{type:"idle",ts:Date.now()});log("Nachricht ausgeblendet.");}
+document.getElementById("successBtn").onclick=async()=>{await set(roomRef("display"),{type:"success",ts:Date.now()});log("Finale: Pflege gerettet.");}
+document.getElementById("failBtn").onclick=async()=>{await set(roomRef("display"),{type:"fail",ts:Date.now()});log("Finale: Zeit abgelaufen.");}
 </script>
 </body>
 </html>

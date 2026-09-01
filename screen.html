@@ -72,13 +72,15 @@ body{display:flex;align-items:center;justify-content:center}
   <div class="vignette"></div>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
-<script src="config.js"></script>
-<script>
-const app = firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const ref = db.ref("rooms/" + ROOM_ID);
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+import { firebaseConfig, ROOM_ID } from "./config.js";
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const roomRef = (path="") => ref(db, `rooms/${ROOM_ID}${path ? "/" + path : ""}`);
+
 const TIMER_MS=45*60*1000;
 let timerState={running:false,endAt:null,remainingMs:TIMER_MS};
 let msgTimer=null;
@@ -93,14 +95,14 @@ function fmt(ms){
 }
 setInterval(()=>document.getElementById("timer").textContent=fmt(remaining()),250);
 
-ref.child("timer").on("value",s=>{if(s.exists()) timerState=s.val();});
+onValue(roomRef("timer"),snap=>{if(snap.exists()) timerState=snap.val();});
 
 function hideAll(){
   document.getElementById("message").classList.remove("show");
   document.getElementById("success").classList.remove("show");
   document.getElementById("fail").classList.remove("show");
 }
-ref.child("display").on("value",snap=>{
+onValue(roomRef("display"),snap=>{
   if(!snap.exists()) return;
   const d=snap.val(); hideAll();
   if(msgTimer) clearTimeout(msgTimer);
@@ -116,8 +118,8 @@ ref.child("display").on("value",snap=>{
   }
 });
 
-firebase.database().ref(".info/connected").on("value", s=>{
-  const on=s.val()===true;
+onValue(ref(db, ".info/connected"), snap=>{
+  const on=snap.val()===true;
   document.getElementById("connDot").classList.toggle("online",on);
   document.getElementById("connText").textContent=on?"online":"offline";
 });

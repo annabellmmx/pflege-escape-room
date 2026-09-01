@@ -1,29 +1,11 @@
-
-// 1) Erstelle unter https://console.firebase.google.com/ ein kostenloses Firebase-Projekt.
-// 2) Aktiviere "Realtime Database".
-// 3) Lege eine Web-App an und kopiere die firebaseConfig-Werte hier hinein.
-//
-// Beispiel:
-// const firebaseConfig = {
-//   apiKey: "....",
-//   authDomain: "....",
-//   databaseURL: "https://....firebasedatabase.app",
-//   projectId: "....",
-//   storageBucket: "....",
-//   messagingSenderId: "....",
-//   appId: "...."
-// };
-
-const firebaseConfig = {
-  apiKey: "HIER_EINTRAGEN",
-  authDomain: "HIER_EINTRAGEN",
-  databaseURL: "HIER_EINTRAGEN",
-  projectId: "HIER_EINTRAGEN",
-  storageBucket: "HIER_EINTRAGEN",
-  messagingSenderId: "HIER_EINTRAGEN",
-  appId: "HIER_EINTRAGEN"
+export const firebaseConfig = {
+  apiKey: "AIzaSyDkxfNdcfv3F-3aQpDoTVw7EIRJEKbFarc",
+  authDomain: "pflege-escape-room.firebaseapp.com",
+  databaseURL: "https://pflege-escape-room-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "pflege-escape-room",
+  storageBucket: "pflege-escape-room.firebasestorage.app",
+  messagingSenderId: "820166614792",
+  appId: "1:820166614792:web:07f988af17fb35a6fa96bd"
 };
 
-// Beide Seiten müssen dieselbe Raum-ID verwenden.
-// Du kannst sie für jede Klasse ändern, z. B. "pflege-2026-kurs-a".
-const ROOM_ID = "geschichte-der-pflege";
+export const ROOM_ID = "geschichte-der-pflege";
