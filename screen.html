@@ -83,7 +83,7 @@ body{display:flex;align-items:center;justify-content:center}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
 const firebaseConfig = {
   apiKey: "AIzaSyDkxfNdcfv3F-3aQpDoTVw7EIRJEKbFarc",
   authDomain: "pflege-escape-room.firebaseapp.com",
@@ -104,17 +104,39 @@ const TIMER_MS=45*60*1000;
 let timerState={running:false,endAt:null,remainingMs:TIMER_MS};
 let msgTimer=null;
 
+function sanitizeTimer(raw){
+  if(!raw || typeof raw!=="object") return {running:false,endAt:null,remainingMs:TIMER_MS};
+  if(raw.running===true){
+    const endAt=Number(raw.endAt);
+    const r=endAt-Date.now();
+    if(!Number.isFinite(endAt) || r<0 || r>TIMER_MS+5000) return {running:false,endAt:null,remainingMs:TIMER_MS};
+    return {running:true,endAt,remainingMs:Math.min(TIMER_MS,Math.max(0,r))};
+  }
+  const r=Number(raw.remainingMs);
+  if(!Number.isFinite(r) || r<0 || r>TIMER_MS) return {running:false,endAt:null,remainingMs:TIMER_MS};
+  return {running:false,endAt:null,remainingMs:r};
+}
 function remaining(){
-  if(timerState.running && timerState.endAt) return Math.max(0,timerState.endAt-Date.now());
-  return Math.max(0,timerState.remainingMs ?? TIMER_MS);
+  let r=timerState.running ? Number(timerState.endAt)-Date.now() : Number(timerState.remainingMs);
+  if(!Number.isFinite(r)) r=TIMER_MS;
+  return Math.min(TIMER_MS,Math.max(0,r));
 }
 function fmt(ms){
-  const s=Math.ceil(ms/1000),m=Math.floor(s/60),ss=s%60;
+  ms=Math.min(TIMER_MS,Math.max(0,Number(ms)||0));
+  const total=Math.ceil(ms/1000),m=Math.floor(total/60),ss=total%60;
   return `${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`;
 }
 setInterval(()=>document.getElementById("timer").textContent=fmt(remaining()),250);
 
-onValue(roomRef("timer"),snap=>{if(snap.exists()) timerState=snap.val();});
+onValue(roomRef("timer"),async snap=>{
+  const raw=snap.exists()?snap.val():null;
+  const fixed=sanitizeTimer(raw);
+  timerState=fixed;
+  document.getElementById("timer").textContent=fmt(remaining());
+  if(!raw || JSON.stringify(fixed)!==JSON.stringify(raw)){
+    try{await set(roomRef("timer"),fixed);}catch(e){}
+  }
+});
 
 const introVideo=document.getElementById("introVideo"), videoLayer=document.getElementById("videoLayer");
 const unlockLayer=document.getElementById("unlockLayer"), unlockBtn=document.getElementById("unlockBtn");

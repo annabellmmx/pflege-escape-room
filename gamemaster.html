@@ -157,38 +157,56 @@ const db = getDatabase(app);
 const roomRef = (path="") => ref(db, `rooms/${ROOM_ID}${path ? "/" + path : ""}`);
 
 const TIMER_MS = 45*60*1000;
-let timerState = {running:false, endAt:null, remainingMs:TIMER_MS};
+let timerState = {running:false,endAt:null,remainingMs:TIMER_MS};
 
 const logEl = document.getElementById("log");
 function log(t){
   const time = new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
   logEl.innerHTML = `[${time}] ${t}<br>` + logEl.innerHTML;
 }
-function fmt(ms){
-  ms = Math.max(0, ms);
-  const s = Math.ceil(ms/1000), m = Math.floor(s/60), ss=s%60;
-  return `${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`;
+function sanitizeTimer(raw){
+  if(!raw || typeof raw!=="object") return {running:false,endAt:null,remainingMs:TIMER_MS};
+  if(raw.running===true){
+    const endAt=Number(raw.endAt);
+    const r=endAt-Date.now();
+    if(!Number.isFinite(endAt) || r<0 || r>TIMER_MS+5000) return {running:false,endAt:null,remainingMs:TIMER_MS};
+    return {running:true,endAt,remainingMs:Math.min(TIMER_MS,Math.max(0,r))};
+  }
+  const r=Number(raw.remainingMs);
+  if(!Number.isFinite(r) || r<0 || r>TIMER_MS) return {running:false,endAt:null,remainingMs:TIMER_MS};
+  return {running:false,endAt:null,remainingMs:r};
 }
 function remaining(){
-  if(timerState.running && timerState.endAt) return Math.max(0,timerState.endAt-Date.now());
-  return Math.max(0,timerState.remainingMs ?? TIMER_MS);
+  let r=timerState.running ? Number(timerState.endAt)-Date.now() : Number(timerState.remainingMs);
+  if(!Number.isFinite(r)) r=TIMER_MS;
+  return Math.min(TIMER_MS,Math.max(0,r));
+}
+function fmt(ms){
+  ms=Math.min(TIMER_MS,Math.max(0,Number(ms)||0));
+  const total=Math.ceil(ms/1000),m=Math.floor(total/60),ss=total%60;
+  return `${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`;
 }
 function paint(){document.getElementById("timer").textContent=fmt(remaining())}
 
-setInterval(async ()=>{
+setInterval(async()=>{
   paint();
   if(timerState.running && remaining()<=0){
     timerState={running:false,endAt:null,remainingMs:0};
-    await set(roomRef("timer"), timerState);
-    await set(roomRef("display"), {type:"fail",ts:Date.now()});
+    await set(roomRef("timer"),timerState);
+    await set(roomRef("display"),{type:"fail",ts:Date.now()});
     log("Zeit abgelaufen.");
   }
 },250);
 
-onValue(roomRef("timer"), snap=>{
-  if(snap.exists()) timerState=snap.val();
-  else set(roomRef("timer"), timerState);
+onValue(roomRef("timer"),async snap=>{
+  const raw=snap.exists()?snap.val():null;
+  const fixed=sanitizeTimer(raw);
+  timerState=fixed;
   paint();
+  if(!raw || JSON.stringify(fixed)!==JSON.stringify(raw)){
+    await set(roomRef("timer"),fixed);
+    if(raw) log("Fehlerhafter alter Timerwert wurde automatisch auf 45:00 zurückgesetzt.");
+  }
 });
 
 onValue(ref(db, ".info/connected"), snap=>{
