@@ -1,221 +1,1082 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Escape Room – Geschichte der Pflege</title>
-<link rel="stylesheet" href="shared.css"/>
-<style>
-html,body{overflow:hidden}
-body{display:flex;align-items:center;justify-content:center}
-.stage{width:100vw;height:100vh;position:relative;display:flex;align-items:center;justify-content:center;color:#eadfc8}
-.vignette{position:absolute;inset:0;box-shadow:inset 0 0 180px 70px rgba(0,0,0,.8);pointer-events:none}
-.flame{font-size:5.4rem;filter:drop-shadow(0 0 20px rgba(255,188,79,.55));animation:flicker 2.1s infinite}
-@keyframes flicker{0%,100%{transform:rotate(-1deg) scale(1)}30%{transform:rotate(1deg) scale(1.03)}60%{transform:rotate(0) scale(.98)}}
-.idle{text-align:center;max-width:950px;padding:40px}
-.idle h1{font-size:clamp(2.7rem,6vw,6rem);margin:.15em 0 .05em;letter-spacing:.03em}
-.idle p{font-size:clamp(1.1rem,2vw,1.8rem);opacity:.82}
-.timer{font-size:clamp(4rem,12vw,10rem);font-weight:bold;letter-spacing:.08em;margin-top:.18em;text-shadow:0 4px 15px #000}
-.message{
- position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
- background:rgba(17,13,9,.82);opacity:0;pointer-events:none;transition:opacity .5s ease;
-}
-.message.show{opacity:1}
-.note{width:min(82vw,1000px);padding:55px 65px;text-align:center;transform:rotate(-.35deg)}
-.note .from{font-size:clamp(.9rem,1.7vw,1.2rem);letter-spacing:.22em;text-transform:uppercase;color:#4a4a4a}
-.note .text{font-size:clamp(1.8rem,4vw,3.6rem);line-height:1.35;margin-top:24px;color:#3f3f3f}
-.final{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:50px}
-.final.show{display:flex}
-.final h2{font-size:clamp(3rem,7vw,7rem);margin:.2em 0}
-.final p{font-size:clamp(1.2rem,2.2vw,2rem);max-width:900px}
-.success{background:radial-gradient(circle,#3f5b48,#121a15 72%)}
-.fail{background:radial-gradient(circle,#4b1a17,#160807 72%)}
-.connection{position:absolute;right:18px;bottom:14px;font-family:Arial,sans-serif;font-size:.72rem;opacity:.42}
-.video-layer{position:absolute;inset:0;background:#000;display:none;align-items:center;justify-content:center;z-index:20}
-.video-layer.show{display:flex}.video-layer video{width:100%;height:100%;object-fit:contain;object-position:center center;background:#000}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Escape Room – Geschichte der Pflege</title>
 
-.unlock-layer{position:absolute;inset:0;z-index:30;background:#111;display:flex;align-items:center;justify-content:center;text-align:center;padding:40px}
-.unlock-layer.hidden{display:none}.unlock-card{max-width:760px;color:#f2eee5}.unlock-card h2{font-size:clamp(2rem,4vw,4rem);margin:0 0 18px}.unlock-card p{font-size:clamp(1rem,2vw,1.4rem);line-height:1.5;opacity:.82}.unlock-card button{margin-top:24px;padding:18px 28px;font-size:1.2rem;border:1px solid #b8a37a;background:#e8dfcc;color:#222;border-radius:8px;cursor:pointer}
-</style>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #0f0c08;
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    body {
+      color: #f5ead2;
+    }
+
+    #app {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at center, rgba(87, 66, 39, 0.28), transparent 60%),
+        linear-gradient(135deg, #19130c, #0b0906);
+    }
+
+    /* ---------------- TIMER ---------------- */
+
+    #timerBox {
+      position: absolute;
+      top: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+
+      min-width: 280px;
+      padding: 16px 30px;
+
+      border: 2px solid rgba(216, 188, 137, 0.85);
+      border-radius: 16px;
+
+      background: rgba(20, 15, 10, 0.9);
+      box-shadow:
+        0 0 30px rgba(0, 0, 0, 0.55),
+        inset 0 0 20px rgba(255, 226, 170, 0.04);
+
+      text-align: center;
+    }
+
+    #timerLabel {
+      font-size: 18px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #cdb88d;
+      margin-bottom: 3px;
+    }
+
+    #timer {
+      font-size: 64px;
+      line-height: 1;
+      font-weight: bold;
+      letter-spacing: 4px;
+      color: #fff4d7;
+      text-shadow: 0 0 12px rgba(255, 234, 189, 0.18);
+    }
+
+    /* ---------------- STANDARD SCREEN ---------------- */
+
+    #defaultScreen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 150px 40px 60px;
+    }
+
+    #defaultInner {
+      text-align: center;
+      max-width: 900px;
+      opacity: 0.78;
+    }
+
+    #lamp {
+      font-size: 90px;
+      margin-bottom: 20px;
+      filter: sepia(0.7);
+    }
+
+    #defaultTitle {
+      font-size: 44px;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      margin-bottom: 15px;
+    }
+
+    #defaultSubtitle {
+      font-size: 22px;
+      color: #cab997;
+      line-height: 1.5;
+    }
+
+    /* ---------------- OVERLAYS ---------------- */
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 50;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      padding: 60px;
+
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+
+      transition: opacity 0.25s ease;
+    }
+
+    .overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* ---------------- MESSAGE ---------------- */
+
+    #message {
+      background: rgba(9, 7, 5, 0.93);
+    }
+
+    #messageCard {
+      width: min(1150px, 92vw);
+      min-height: 360px;
+
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+
+      padding: 55px 70px;
+
+      border: 4px double #c9a96a;
+      outline: 1px solid rgba(201, 169, 106, 0.45);
+      outline-offset: -12px;
+
+      border-radius: 8px;
+
+      background:
+        linear-gradient(rgba(244, 225, 188, 0.97), rgba(226, 200, 153, 0.97));
+
+      box-shadow: 0 15px 80px rgba(0, 0, 0, 0.7);
+
+      color: #342516;
+      text-align: center;
+    }
+
+    #messageHeading {
+      font-size: 24px;
+      text-transform: uppercase;
+      letter-spacing: 5px;
+      margin-bottom: 28px;
+      color: #75542e;
+    }
+
+    #messageText {
+      font-size: clamp(30px, 4vw, 55px);
+      line-height: 1.35;
+      font-weight: 600;
+      white-space: pre-wrap;
+    }
+
+    /* ---------------- SUCCESS ---------------- */
+
+    #success {
+      background: rgba(15, 35, 19, 0.97);
+      text-align: center;
+      flex-direction: column;
+    }
+
+    #successIcon {
+      font-size: 105px;
+      margin-bottom: 25px;
+    }
+
+    #successTitle {
+      font-size: clamp(45px, 6vw, 90px);
+      font-weight: bold;
+      margin-bottom: 18px;
+    }
+
+    #successText {
+      font-size: clamp(24px, 3vw, 42px);
+    }
+
+    /* ---------------- FAIL ---------------- */
+
+    #fail {
+      background: rgba(54, 12, 12, 0.97);
+      text-align: center;
+      flex-direction: column;
+    }
+
+    #failIcon {
+      font-size: 105px;
+      margin-bottom: 25px;
+    }
+
+    #failTitle {
+      font-size: clamp(45px, 6vw, 90px);
+      font-weight: bold;
+      margin-bottom: 18px;
+    }
+
+    #failText {
+      font-size: clamp(24px, 3vw, 42px);
+    }
+
+    /* ---------------- VIDEO ---------------- */
+
+    #videoLayer {
+      background: #000;
+      padding: 0;
+    }
+
+    #introVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+    }
+
+    /* ---------------- START / AUDIO FREIGABE ---------------- */
+
+    #unlockLayer {
+      position: absolute;
+      inset: 0;
+      z-index: 100;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      background:
+        radial-gradient(circle at center, #332414, #0c0906 72%);
+
+      transition: opacity 0.25s ease;
+    }
+
+    #unlockLayer.hidden {
+      display: none;
+    }
+
+    #unlockCard {
+      width: min(720px, 86vw);
+      padding: 50px;
+
+      border: 3px double #c8a76a;
+      border-radius: 12px;
+
+      background: rgba(26, 19, 11, 0.96);
+
+      text-align: center;
+      box-shadow: 0 15px 70px rgba(0, 0, 0, 0.65);
+    }
+
+    #unlockTitle {
+      font-size: 40px;
+      margin-bottom: 16px;
+      letter-spacing: 2px;
+    }
+
+    #unlockText {
+      font-size: 21px;
+      line-height: 1.5;
+      color: #cbb997;
+      margin-bottom: 30px;
+    }
+
+    #unlockBtn {
+      appearance: none;
+      border: 2px solid #d6b77c;
+      border-radius: 12px;
+      padding: 20px 34px;
+
+      background: #d3b172;
+      color: #261b0e;
+
+      font-family: inherit;
+      font-size: 24px;
+      font-weight: bold;
+
+      cursor: pointer;
+    }
+
+    #unlockBtn:active {
+      transform: scale(0.98);
+    }
+
+    /* ---------------- CONNECTION ---------------- */
+
+    #connectionStatus {
+      position: absolute;
+      right: 18px;
+      bottom: 16px;
+      z-index: 25;
+
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      padding: 8px 12px;
+
+      border-radius: 20px;
+      background: rgba(0, 0, 0, 0.42);
+
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    #connDot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #b84343;
+    }
+
+    #connDot.online {
+      background: #55c96b;
+      box-shadow: 0 0 9px rgba(85, 201, 107, 0.75);
+    }
+
+    @media (max-width: 900px) {
+      #timerBox {
+        top: 15px;
+        min-width: 230px;
+        padding: 12px 22px;
+      }
+
+      #timer {
+        font-size: 50px;
+      }
+
+      #messageCard {
+        padding: 40px;
+      }
+
+      #connectionStatus {
+        font-size: 12px;
+      }
+    }
+  </style>
 </head>
+
 <body>
-<div class="stage">
-  <div class="unlock-layer" id="unlockLayer">
-    <div class="unlock-card"><h2>ESCAPE ROOM BEREIT MACHEN</h2><p>Einmal hier klicken. Danach kann das Introvideo mit Ton vom Game Master im Nebenraum gestartet werden.</p><button id="unlockBtn">▶ Escape Room aktivieren</button></div>
-  </div>
-  <div class="idle" id="idle">
-    <div class="flame">🕯</div>
-    <div class="smallcaps">Florence Nightingale</div>
-    <h1>PFLEGE RETTEN</h1>
-    <p>Die Vergangenheit darf nicht vergessen werden.</p>
-    <div class="timer" id="timer">45:00</div>
+
+<div id="app">
+
+  <!-- TIMER -->
+  <div id="timerBox">
+    <div id="timerLabel">Verbleibende Zeit</div>
+    <div id="timer">45:00</div>
   </div>
 
-  <div class="video-layer" id="videoLayer"><video id="introVideo" preload="auto" playsinline src="./nightingale-intro.mp4"></video></div>
-  <div class="message" id="message">
-    <div class="paper note">
-      <div class="from">Nachricht von Florence Nightingale</div>
-      <div class="text" id="messageText"></div>
+  <!-- STANDARDANSICHT -->
+  <div id="defaultScreen">
+    <div id="defaultInner">
+      <div id="lamp">🏮</div>
+      <div id="defaultTitle">Geschichte der Pflege</div>
+      <div id="defaultSubtitle">
+        Folgen Sie den Spuren der Vergangenheit.<br>
+        Die Zeit läuft.
+      </div>
     </div>
   </div>
 
-  <div class="final success" id="success">
-    <div>
-      <div class="flame">🕯</div>
-      <div class="smallcaps">Die Geschichte bleibt erhalten</div>
-      <h2>PFLEGE GERETTET</h2>
-      <p>Sie haben die Spuren der Vergangenheit zusammengesetzt und bewahrt, was nicht verloren gehen durfte.</p>
+  <!-- HINWEIS -->
+  <div id="message" class="overlay">
+    <div id="messageCard">
+      <div id="messageHeading">Hinweis von Florence Nightingale</div>
+      <div id="messageText"></div>
     </div>
   </div>
 
-  <div class="final fail" id="fail">
-    <div>
-      <div style="font-size:5rem">⌛</div>
-      <div class="smallcaps">Die Zeit ist verstrichen</div>
-      <h2>ZEIT ABGELAUFEN</h2>
-      <p>Die Geschichte beginnt zu verblassen …</p>
+  <!-- ERFOLG -->
+  <div id="success" class="overlay">
+    <div id="successIcon">🏮</div>
+    <div id="successTitle">Sie haben es geschafft!</div>
+    <div id="successText">Nightingales Erbe wurde bewahrt.</div>
+  </div>
+
+  <!-- ZEIT ABGELAUFEN -->
+  <div id="fail" class="overlay">
+    <div id="failIcon">⌛</div>
+    <div id="failTitle">Die Zeit ist abgelaufen.</div>
+    <div id="failText">Florence Nightingale wartet auf die nächste Gruppe.</div>
+  </div>
+
+  <!-- VIDEO -->
+  <div id="videoLayer" class="overlay">
+    <video
+      id="introVideo"
+      preload="auto"
+      playsinline
+    >
+      <source src="nightingale.mp4" type="video/mp4">
+    </video>
+  </div>
+
+  <!-- VERBINDUNGSSTATUS -->
+  <div id="connectionStatus">
+    <span id="connDot"></span>
+    <span id="connText">verbinde…</span>
+  </div>
+
+  <!-- EINMALIGE FREIGABE FÜR VIDEO/AUDIO -->
+  <div id="unlockLayer">
+    <div id="unlockCard">
+      <div id="unlockTitle">Escape Room bereit machen</div>
+
+      <div id="unlockText">
+        Tippen Sie einmal auf die Schaltfläche.<br>
+        Danach kann der Game Master Video, Hinweise und Timer steuern.
+      </div>
+
+      <button id="unlockBtn">
+        ▶ Escape Room aktivieren
+      </button>
     </div>
   </div>
 
-  <div class="connection"><span id="connDot" class="status-dot"></span><span id="connText">verbinden …</span></div>
-  <div class="vignette"></div>
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
-const firebaseConfig = {
-  apiKey: "AIzaSyDkxfNdcfv3F-3aQpDoTVw7EIRJEKbFarc",
-  authDomain: "pflege-escape-room.firebaseapp.com",
-  databaseURL: "https://pflege-escape-room-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "pflege-escape-room",
-  storageBucket: "pflege-escape-room.firebasestorage.app",
-  messagingSenderId: "820166614792",
-  appId: "1:820166614792:web:07f988af17fb35a6fa96bd"
-};
-const ROOM_ID = "geschichte-der-pflege";
 
+<!--
+  WICHTIG:
+  Bewusst Firebase 8 Compatibility-Version.
+  Kein type="module".
+  Dadurch deutlich kompatibler mit älteren Whiteboard-Browsern.
+-->
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const roomRef = (path="") => ref(db, `rooms/${ROOM_ID}${path ? "/" + path : ""}`);
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-let serverTimeOffset = 0;
-onValue(ref(db, ".info/serverTimeOffset"), snap=>{
-  const v = Number(snap.val());
-  serverTimeOffset = Number.isFinite(v) ? v : 0;
-});
-const serverNow = ()=>Date.now()+serverTimeOffset;
+<script>
+(function () {
 
+  /* =========================================================
+     FIREBASE
+  ========================================================= */
 
-const TIMER_MS=45*60*1000;
-let timerState={running:false,endAt:null,remainingMs:TIMER_MS};
-let msgTimer=null;
+  var firebaseConfig = {
+    apiKey: "AIzaSyDkxfNdcfv3F-3aQpDoTVw7EIRJEKbFarc",
+    authDomain: "pflege-escape-room.firebaseapp.com",
+    databaseURL: "https://pflege-escape-room-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "pflege-escape-room",
+    storageBucket: "pflege-escape-room.firebasestorage.app",
+    messagingSenderId: "820166614792",
+    appId: "1:820166614792:web:07f988af17fb35a6fa96bd"
+  };
 
-function normalizeTimer(raw){
-  if(!raw || typeof raw!=="object") return {running:false,endAt:null,remainingMs:TIMER_MS};
-  if(raw.running===true){
-    const endAt=Number(raw.endAt);
-    if(!Number.isFinite(endAt)) return {running:false,endAt:null,remainingMs:TIMER_MS};
-    return {running:true,endAt,remainingMs:TIMER_MS};
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
   }
-  const r=Number(raw.remainingMs);
-  if(!Number.isFinite(r)) return {running:false,endAt:null,remainingMs:TIMER_MS};
-  return {running:false,endAt:null,remainingMs:Math.min(TIMER_MS,Math.max(0,r))};
-}
-function remaining(){
-  let r=timerState.running
-    ? Number(timerState.endAt)-serverNow()
-    : Number(timerState.remainingMs);
-  if(!Number.isFinite(r)) r=TIMER_MS;
-  return Math.min(TIMER_MS,Math.max(0,r));
-}
-function fmt(ms){
-  const safe=Math.min(TIMER_MS,Math.max(0,Number(ms)||0));
-  const total=Math.ceil(safe/1000),m=Math.floor(total/60),ss=total%60;
-  return `${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`;
-}
-setInterval(()=>document.getElementById("timer").textContent=fmt(remaining()),250);
 
-onValue(roomRef("timer"),snap=>{
-  timerState=snap.exists()
-    ? normalizeTimer(snap.val())
-    : {running:false,endAt:null,remainingMs:TIMER_MS};
-  document.getElementById("timer").textContent=fmt(remaining());
-});
+  var db = firebase.database();
+  var ROOM_ID = "geschichte-der-pflege";
 
-const introVideo=document.getElementById("introVideo"), videoLayer=document.getElementById("videoLayer");
-const unlockLayer=document.getElementById("unlockLayer"), unlockBtn=document.getElementById("unlockBtn");
-unlockBtn.addEventListener("click", async()=>{
-  try{
-    introVideo.volume=1;
-    introVideo.currentTime=0;
-    await introVideo.play();
-    introVideo.pause();
-    introVideo.currentTime=0;
-    unlockLayer.classList.add("hidden");
-  }catch(e){
-    unlockBtn.textContent="Nochmal klicken";
-  }
-});
-function hideAll(keepVideo=false){
-  document.getElementById("message").classList.remove("show");
-  document.getElementById("success").classList.remove("show");
-  document.getElementById("fail").classList.remove("show");
-  if(!keepVideo) videoLayer.classList.remove("show");
-}
-let lastVideoStatusSent=0;
-async function reportVideoStatus(state){
-  const now=Date.now();
-  if(state==="playing" && now-lastVideoStatusSent<900) return;
-  lastVideoStatusSent=now;
-  try{
-    await set(roomRef("videoStatus"),{
-      state,
-      currentTime:Number(introVideo.currentTime)||0,
-      duration:Number.isFinite(introVideo.duration)?introVideo.duration:228.2,
-      ts:now
-    });
-  }catch(e){}
-}
-introVideo.addEventListener("play",()=>reportVideoStatus("playing"));
-introVideo.addEventListener("pause",()=>{ if(!introVideo.ended) reportVideoStatus("paused"); });
-introVideo.addEventListener("timeupdate",()=>reportVideoStatus("playing"));
-introVideo.addEventListener("ended",()=>{
-  videoLayer.classList.remove("show");
-  reportVideoStatus("ended");
-});
-onValue(roomRef("display"),snap=>{
-  if(!snap.exists()) return;
-  const d=snap.val();
-  if(msgTimer) clearTimeout(msgTimer);
-  if(d.type==="video"){
-    hideAll(true); videoLayer.classList.add("show");
-    if(d.command==="play") introVideo.play().catch(()=>{
-      unlockLayer.classList.remove("hidden");
-      unlockBtn.textContent="▶ Video hier einmal freigeben";
-    });
-    else if(d.command==="pause") introVideo.pause();
-    else if(d.command==="restart"){introVideo.currentTime=0;introVideo.play().catch(()=>{});}
-    return;
-  }
-  hideAll(); if(!introVideo.paused) introVideo.pause();
-  if(d.type==="message"){
-    document.getElementById("messageText").textContent=d.text||"";
-    document.getElementById("message").classList.add("show");
-    msgTimer=setTimeout(()=>document.getElementById("message").classList.remove("show"), d.duration||12000);
-  } else if(d.type==="success"){
-    document.getElementById("success").classList.add("show");
-  } else if(d.type==="fail"){
-    document.getElementById("fail").classList.add("show");
-  }
-});
+  function roomRef(path) {
+    var base = "rooms/" + ROOM_ID;
 
-onValue(ref(db, ".info/connected"), snap=>{
-  const on=snap.val()===true;
-  document.getElementById("connDot").classList.toggle("online",on);
-  document.getElementById("connText").textContent=on?"online":"offline";
-});
+    if (path) {
+      base += "/" + path;
+    }
+
+    return db.ref(base);
+  }
+
+
+  /* =========================================================
+     DOM
+  ========================================================= */
+
+  var timerEl = document.getElementById("timer");
+
+  var messageLayer = document.getElementById("message");
+  var messageText = document.getElementById("messageText");
+
+  var successLayer = document.getElementById("success");
+  var failLayer = document.getElementById("fail");
+
+  var videoLayer = document.getElementById("videoLayer");
+  var introVideo = document.getElementById("introVideo");
+
+  var unlockLayer = document.getElementById("unlockLayer");
+  var unlockBtn = document.getElementById("unlockBtn");
+
+  var connDot = document.getElementById("connDot");
+  var connText = document.getElementById("connText");
+
+
+  /* =========================================================
+     VERBINDUNG
+  ========================================================= */
+
+  var serverTimeOffset = 0;
+
+  db.ref(".info/serverTimeOffset").on("value", function (snapshot) {
+    var n = Number(snapshot.val());
+
+    if (!isNaN(n)) {
+      serverTimeOffset = n;
+    }
+  });
+
+  db.ref(".info/connected").on("value", function (snapshot) {
+
+    var connected = snapshot.val() === true;
+
+    if (connected) {
+      connDot.className = "online";
+      connText.innerHTML = "Firebase verbunden";
+    } else {
+      connDot.className = "";
+      connText.innerHTML = "Firebase getrennt";
+    }
+
+  });
+
+  function serverNow() {
+    return Date.now() + serverTimeOffset;
+  }
+
+
+  /* =========================================================
+     TIMER
+  ========================================================= */
+
+  var TIMER_MS = 45 * 60 * 1000;
+
+  var timerState = {
+    running: false,
+    endAt: null,
+    remainingMs: TIMER_MS
+  };
+
+  function normalizeTimer(data) {
+
+    if (!data || typeof data !== "object") {
+      return {
+        running: false,
+        endAt: null,
+        remainingMs: TIMER_MS
+      };
+    }
+
+    if (data.running === true) {
+
+      var endAt = Number(data.endAt);
+
+      if (!isNaN(endAt)) {
+        return {
+          running: true,
+          endAt: endAt,
+          remainingMs: TIMER_MS
+        };
+      }
+    }
+
+    var remainingMs = Number(data.remainingMs);
+
+    if (isNaN(remainingMs)) {
+      remainingMs = TIMER_MS;
+    }
+
+    if (remainingMs < 0) {
+      remainingMs = 0;
+    }
+
+    if (remainingMs > TIMER_MS) {
+      remainingMs = TIMER_MS;
+    }
+
+    return {
+      running: false,
+      endAt: null,
+      remainingMs: remainingMs
+    };
+  }
+
+  function getRemainingMs() {
+
+    var ms;
+
+    if (timerState.running === true && timerState.endAt !== null) {
+      ms = timerState.endAt - serverNow();
+    } else {
+      ms = timerState.remainingMs;
+    }
+
+    if (typeof ms !== "number" || isNaN(ms)) {
+      ms = TIMER_MS;
+    }
+
+    if (ms < 0) {
+      ms = 0;
+    }
+
+    if (ms > TIMER_MS) {
+      ms = TIMER_MS;
+    }
+
+    return ms;
+  }
+
+  function formatTime(ms) {
+
+    var totalSeconds = Math.ceil(ms / 1000);
+
+    if (totalSeconds < 0) {
+      totalSeconds = 0;
+    }
+
+    var minutes = Math.floor(totalSeconds / 60);
+    var seconds = totalSeconds % 60;
+
+    var mm = minutes < 10 ? "0" + minutes : String(minutes);
+    var ss = seconds < 10 ? "0" + seconds : String(seconds);
+
+    return mm + ":" + ss;
+  }
+
+  function renderTimer() {
+
+    var remaining = getRemainingMs();
+
+    timerEl.innerHTML = formatTime(remaining);
+
+    if (remaining <= 0 && timerState.running) {
+      timerState.running = false;
+    }
+  }
+
+  setInterval(renderTimer, 250);
+
+  roomRef("timer").on(
+    "value",
+
+    function (snapshot) {
+
+      if (snapshot.exists()) {
+        timerState = normalizeTimer(snapshot.val());
+      } else {
+        timerState = {
+          running: false,
+          endAt: null,
+          remainingMs: TIMER_MS
+        };
+      }
+
+      renderTimer();
+    },
+
+    function (error) {
+      console.log("Timer listener error:", error);
+    }
+  );
+
+
+  /* =========================================================
+     ANZEIGEN
+  ========================================================= */
+
+  var messageTimeout = null;
+
+  function removeClass(element, name) {
+
+    if (!element) {
+      return;
+    }
+
+    var classes = element.className.split(" ");
+    var result = [];
+
+    for (var i = 0; i < classes.length; i++) {
+      if (classes[i] && classes[i] !== name) {
+        result.push(classes[i]);
+      }
+    }
+
+    element.className = result.join(" ");
+  }
+
+  function addClass(element, name) {
+
+    if (!element) {
+      return;
+    }
+
+    var classes = element.className.split(" ");
+
+    for (var i = 0; i < classes.length; i++) {
+      if (classes[i] === name) {
+        return;
+      }
+    }
+
+    element.className += " " + name;
+  }
+
+  function hideOverlays(keepVideo) {
+
+    removeClass(messageLayer, "show");
+    removeClass(successLayer, "show");
+    removeClass(failLayer, "show");
+
+    if (!keepVideo) {
+      removeClass(videoLayer, "show");
+    }
+  }
+
+  function showMessage(text, duration) {
+
+    hideOverlays(false);
+
+    if (!introVideo.paused) {
+      introVideo.pause();
+    }
+
+    messageText.innerHTML = "";
+
+    /*
+      textContent statt innerHTML,
+      damit Hinweistexte sicher dargestellt werden.
+    */
+    messageText.textContent = text || "";
+
+    addClass(messageLayer, "show");
+
+    if (messageTimeout) {
+      clearTimeout(messageTimeout);
+    }
+
+    var ms = Number(duration);
+
+    if (isNaN(ms) || ms < 1000) {
+      ms = 12000;
+    }
+
+    messageTimeout = setTimeout(function () {
+      removeClass(messageLayer, "show");
+    }, ms);
+  }
+
+  function showSuccess() {
+
+    if (messageTimeout) {
+      clearTimeout(messageTimeout);
+    }
+
+    hideOverlays(false);
+
+    if (!introVideo.paused) {
+      introVideo.pause();
+    }
+
+    addClass(successLayer, "show");
+  }
+
+  function showFail() {
+
+    if (messageTimeout) {
+      clearTimeout(messageTimeout);
+    }
+
+    hideOverlays(false);
+
+    if (!introVideo.paused) {
+      introVideo.pause();
+    }
+
+    addClass(failLayer, "show");
+  }
+
+
+  /* =========================================================
+     VIDEO
+  ========================================================= */
+
+  function sendVideoStatus(state) {
+
+    var data = {
+      state: state,
+      currentTime: Number(introVideo.currentTime) || 0,
+      duration: Number(introVideo.duration) || 0,
+      ts: Date.now()
+    };
+
+    roomRef("videoStatus").set(data);
+  }
+
+  introVideo.addEventListener("play", function () {
+    sendVideoStatus("playing");
+  });
+
+  introVideo.addEventListener("pause", function () {
+
+    if (!introVideo.ended) {
+      sendVideoStatus("paused");
+    }
+
+  });
+
+  introVideo.addEventListener("ended", function () {
+
+    removeClass(videoLayer, "show");
+
+    sendVideoStatus("ended");
+
+  });
+
+
+  /* =========================================================
+     EINMALIGE VIDEO-FREIGABE
+  ========================================================= */
+
+  unlockBtn.onclick = function () {
+
+    introVideo.volume = 1;
+    introVideo.currentTime = 0;
+
+    var result = introVideo.play();
+
+    if (result && typeof result.then === "function") {
+
+      result.then(function () {
+
+        introVideo.pause();
+        introVideo.currentTime = 0;
+
+        unlockLayer.style.display = "none";
+
+      }).catch(function () {
+
+        /*
+          Selbst wenn der Browser play() blockiert,
+          wird die Escape-Room-Oberfläche freigegeben.
+          Video kann später erneut durch Nutzerinteraktion
+          aktiviert werden.
+        */
+
+        unlockLayer.style.display = "none";
+      });
+
+    } else {
+
+      introVideo.pause();
+      introVideo.currentTime = 0;
+
+      unlockLayer.style.display = "none";
+    }
+
+  };
+
+
+  /* =========================================================
+     FIREBASE DISPLAY LISTENER
+  ========================================================= */
+
+  var lastDisplayKey = "";
+
+  roomRef("display").on(
+    "value",
+
+    function (snapshot) {
+
+      if (!snapshot.exists()) {
+        return;
+      }
+
+      var data = snapshot.val();
+
+      if (!data || typeof data !== "object") {
+        return;
+      }
+
+      /*
+        Falls Game Master eine ID oder Zeit mitsendet,
+        merken wir sie uns.
+        Der Listener reagiert trotzdem auch ohne ID.
+      */
+
+      var key = "";
+
+      if (data.id !== undefined) {
+        key = String(data.id);
+      } else if (data.ts !== undefined) {
+        key = String(data.ts);
+      }
+
+      if (key && key === lastDisplayKey) {
+        return;
+      }
+
+      if (key) {
+        lastDisplayKey = key;
+      }
+
+      if (messageTimeout) {
+        clearTimeout(messageTimeout);
+        messageTimeout = null;
+      }
+
+
+      /* ---------------- VIDEO ---------------- */
+
+      if (data.type === "video") {
+
+        hideOverlays(true);
+        addClass(videoLayer, "show");
+
+        if (data.command === "play") {
+
+          var playResult = introVideo.play();
+
+          if (playResult && typeof playResult.catch === "function") {
+
+            playResult.catch(function () {
+
+              unlockLayer.style.display = "flex";
+              unlockBtn.innerHTML = "▶ Video freigeben";
+
+            });
+
+          }
+
+        } else if (data.command === "pause") {
+
+          introVideo.pause();
+
+        } else if (data.command === "restart") {
+
+          introVideo.currentTime = 0;
+
+          var restartResult = introVideo.play();
+
+          if (restartResult && typeof restartResult.catch === "function") {
+            restartResult.catch(function () {});
+          }
+        }
+
+        return;
+      }
+
+
+      /* ---------------- NORMAL ---------------- */
+
+      hideOverlays(false);
+
+      if (!introVideo.paused) {
+        introVideo.pause();
+      }
+
+
+      /* ---------------- HINWEIS ---------------- */
+
+      if (data.type === "message") {
+
+        showMessage(
+          data.text || "",
+          data.duration || 12000
+        );
+
+        return;
+      }
+
+
+      /* ---------------- ERFOLG ---------------- */
+
+      if (data.type === "success") {
+
+        showSuccess();
+
+        return;
+      }
+
+
+      /* ---------------- FEHLGESCHLAGEN ---------------- */
+
+      if (data.type === "fail") {
+
+        showFail();
+
+        return;
+      }
+
+
+      /* ---------------- CLEAR ---------------- */
+
+      if (
+        data.type === "clear" ||
+        data.type === "normal" ||
+        data.type === "hide"
+      ) {
+
+        hideOverlays(false);
+
+        return;
+      }
+
+    },
+
+    function (error) {
+
+      console.log("Display listener error:", error);
+
+      connDot.className = "";
+      connText.innerHTML = "Firebase-Fehler";
+
+    }
+  );
+
+
+  /* =========================================================
+     AUTOMATISCHER RECONNECT-VERSUCH
+  ========================================================= */
+
+  /*
+    Realtime Database reconnectet normalerweise automatisch.
+    Dieser kleine Keepalive prüft zusätzlich regelmäßig,
+    ob die Firebase-Verbindung wieder verfügbar ist.
+  */
+
+  setInterval(function () {
+
+    db.ref(".info/connected")
+      .once("value")
+      .then(function (snapshot) {
+
+        if (snapshot.val() === true) {
+
+          connDot.className = "online";
+          connText.innerHTML = "Firebase verbunden";
+
+        }
+
+      })
+      .catch(function () {
+
+        connDot.className = "";
+        connText.innerHTML = "Firebase getrennt";
+
+      });
+
+  }, 10000);
+
+
+  /* =========================================================
+     INITIAL
+  ========================================================= */
+
+  renderTimer();
+
+})();
 </script>
+
 </body>
 </html>
